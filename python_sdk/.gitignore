@@ -1,0 +1,8 @@
+.venv
+.DS_Store
+.env
+__pycache__
+
+postchain_client_py/
+.ipynb_checkpoints/
+*.egg-info/

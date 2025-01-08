@@ -1,0 +1,16 @@
+LICENSE
+MANIFEST.in
+README.md
+pyproject.toml
+setup.py
+src/evaengine/__init__.py
+src/evaengine/client.py
+src/evaengine/config.py
+src/evaengine/evaluater.py
+src/evaengine/exceptions.py
+src/evaengine/models.py
+src/evaengine.egg-info/PKG-INFO
+src/evaengine.egg-info/SOURCES.txt
+src/evaengine.egg-info/dependency_links.txt
+src/evaengine.egg-info/requires.txt
+src/evaengine.egg-info/top_level.txt

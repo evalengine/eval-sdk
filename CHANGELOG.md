@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.2] - 2025-01-08
+
+### Added
+- Added unit and integration tests
+- Added context manager for client
+
 ## [0.1.1] - 2025-01-08
 
 ### Changed

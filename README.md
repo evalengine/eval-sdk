@@ -116,6 +116,13 @@ X_API_KEY=your-api-key
 - pydantic>=2.0.0
 - python-dotenv>=0.19.0
 
+## Running Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ## Documentation
 
 For more detailed documentation, visit [https://api.evaengine.ai/docs](https://api.evaengine.ai/docs)

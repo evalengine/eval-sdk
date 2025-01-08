@@ -1,0 +1,162 @@
+@test module;
+
+import ^^.main.*;
+
+val owner = rell.test.keypair(
+    priv=x"6F24F205E2091F456EA97F69C6581132A3CB0C481C6898B7F5911860BEC3EAA4",
+    pub=x"037B248FD496ED0C18B0595EE70E2B253AB93577840B4C18612D81A79A2CED1F6D"
+);
+val engine = rell.test.keypairs.alice;
+val user = rell.test.keypairs.bob;
+
+function _create_engine() {
+    rell.test.tx()
+        .op(create_engine("Test Engine", "Test Engine Description", "TEST", engine.pub))
+        .sign(owner)
+        .run();
+}
+
+function test_create_engine() {
+    _create_engine();
+
+    assert_equals(engine_count(), 1);
+    val engine_record = engine @? { .prefix == "TEST" };
+    assert_not_null(engine_record);
+    assert_equals(engine_record.name, "Test Engine");
+    assert_equals(engine_record.description, "Test Engine Description");
+    assert_equals(engine_record.prefix, "TEST");
+    assert_equals(engine_record.address, engine.pub);
+    
+    // Test invalid creation attempts
+    rell.test.tx()
+        .op(create_engine("Test Engine 2", "Description", "TEST2", engine.pub))
+        .sign(rell.test.keypairs.charlie) // Not owner
+        .run_must_fail("Invalid signer");
+}
+
+function test_evaluate_tweet_request() {
+    _create_engine();
+
+    val request_uid = "TEST-1";
+    val input_tweet = "Hello input!";
+    val output_tweet = "Hello output!";
+
+    // Test invalid request attempts
+    rell.test.tx()
+        .op(evaluate_tweet_request("INVALID-1", input_tweet, output_tweet))
+        .sign(user)
+        .sign(engine)
+        .run_must_fail("Request uid must start with prefix");
+
+    rell.test.tx()
+        .op(evaluate_tweet_request(request_uid, input_tweet, output_tweet))
+        .sign(user) // Missing second signer
+        .run_must_fail("At least 2 signers required");
+
+    // Test valid request
+    rell.test.tx()
+        .op(evaluate_tweet_request(request_uid, input_tweet, output_tweet))
+        .sign(user)
+        .sign(engine)
+        .run();
+
+    // Verify tweet score was created
+    val tweet_score = tweet_scores @? { .request_uid == request_uid };
+    assert_not_null(tweet_score);
+    assert_equals(tweet_score.user_address, user.pub);
+    assert_equals(tweet_score.original_tweet, input_tweet);
+    assert_equals(tweet_score.responded_tweet, output_tweet);
+    assert_equals(tweet_score.evaluation_status, tweet_scores_evaluation_status.pending);
+    assert_equals(tweet_score.truth_score, decimal("0.0"));
+    assert_equals(tweet_score.accuracy_score, decimal("0.0")); 
+    assert_equals(tweet_score.creativity_score, decimal("0.0"));
+    assert_equals(tweet_score.engagement_score, decimal("0.0"));
+    assert_equals(tweet_score.truth_rationale, "");
+    assert_equals(tweet_score.accuracy_rationale, "");
+    assert_equals(tweet_score.creativity_rationale, "");
+    assert_equals(tweet_score.engagement_rationale, "");
+    assert_equals(tweet_score.engagement_improvement_tips, "");
+    assert_equals(tweet_score.recommended_response, "");
+}
+
+function test_update_tweet_score() {
+    _create_engine();
+
+    val request_uid = "TEST-2";
+    val input_tweet = "Hello input!";
+    val output_tweet = "Hello output!";
+
+    rell.test.tx()
+        .op(evaluate_tweet_request(request_uid, input_tweet, output_tweet))
+        .sign(user)
+        .sign(engine)
+        .run();
+
+    assert_equals(tweet_scores_count(), 1);
+
+    val unique_identifier = user.pub.to_hex();
+    val truth_score = decimal("0.5");
+    val accuracy_score = decimal("0.5");
+    val creativity_score = decimal("0.5");
+    val engagement_score = decimal("0.5");
+    val truth_rationale = "Test truth rationale";
+    val accuracy_rationale = "Test accuracy rationale";
+    val creativity_rationale = "Test creativity rationale";
+    val engagement_rationale = "Test engagement rationale";
+    val engagement_improvement_tips = "Test engagement improvement tips";
+    val recommended_response = "Test recommended response";
+
+    // Test invalid update attempts
+    rell.test.tx()
+        .op(update_tweet_scores(
+            request_uid,
+            unique_identifier,
+            truth_score,
+            accuracy_score,
+            creativity_score,
+            engagement_score,
+            truth_rationale,
+            accuracy_rationale,
+            creativity_rationale,
+            engagement_rationale,
+            engagement_improvement_tips,
+            recommended_response
+        ))
+        .sign(user) // Wrong signer
+        .run_must_fail("Invalid signer");
+
+    // Test valid update
+    rell.test.tx()
+        .op(update_tweet_scores(
+            request_uid, 
+            unique_identifier,
+            truth_score,
+            accuracy_score,
+            creativity_score,
+            engagement_score,
+            truth_rationale,
+            accuracy_rationale,
+            creativity_rationale,
+            engagement_rationale,
+            engagement_improvement_tips,
+            recommended_response
+        ))
+        .sign(engine)
+        .run();
+
+    // Verify updated values
+    val updated_score = tweet_scores @? { .request_uid == request_uid };
+    assert_not_null(updated_score);
+    assert_equals(updated_score.unique_identifier, unique_identifier);
+    assert_equals(updated_score.truth_score, truth_score);
+    assert_equals(updated_score.accuracy_score, accuracy_score);
+    assert_equals(updated_score.creativity_score, creativity_score);
+    assert_equals(updated_score.engagement_score, engagement_score);
+    assert_equals(updated_score.truth_rationale, truth_rationale);
+    assert_equals(updated_score.accuracy_rationale, accuracy_rationale);
+    assert_equals(updated_score.creativity_rationale, creativity_rationale);
+    assert_equals(updated_score.engagement_rationale, engagement_rationale);
+    assert_equals(updated_score.engagement_improvement_tips, engagement_improvement_tips);
+    assert_equals(updated_score.recommended_response, recommended_response);
+    assert_equals(updated_score.evaluation_status, tweet_scores_evaluation_status.completed);
+}

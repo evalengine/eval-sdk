@@ -1,0 +1,231 @@
+module;
+
+import lib.ft4.admin;
+import lib.ft4.auth;
+import lib.ft4.accounts;
+
+object dapp_meta {
+    owner: pubkey = x"037B248FD496ED0C18B0595EE70E2B253AB93577840B4C18612D81A79A2CED1F6D";
+}
+
+operation create_engine(name: text, description: text, prefix: text, address: pubkey) {
+    val signer = op_context.get_signers()[0];
+    require(signer == dapp_meta.owner, "Invalid signer");
+
+    create engine(
+        name = name,
+        description = description,
+        prefix = prefix,
+        address = address
+    );
+}
+
+entity engine {
+    name: text;
+    description: text;
+    prefix: text;
+    key prefix;
+
+    address: pubkey;
+    created_at: integer = op_context.last_block_time;
+    updated_at: integer = op_context.last_block_time;
+}
+
+enum tweet_scores_evaluation_status {
+    pending,
+    completed,
+    failed
+}
+
+// Entity definition for tweet scores
+entity tweet_scores {
+    index engine;
+
+    mutable unique_identifier: text;
+    user_address: pubkey;
+
+    request_uid: text;
+    key request_uid;
+
+    original_tweet: text;
+    responded_tweet: text;
+    
+    // Scores (0-100)
+    mutable truth_score: decimal;
+    mutable accuracy_score: decimal;
+    mutable creativity_score: decimal;
+    mutable engagement_score: decimal;
+    
+    // Rationales
+    mutable truth_rationale: text;
+    mutable accuracy_rationale: text;
+    mutable creativity_rationale: text;
+    mutable engagement_rationale: text;
+    mutable engagement_improvement_tips: text;
+    
+    mutable recommended_response: text;
+    created_at: integer = op_context.last_block_time;
+    mutable updated_at: integer = op_context.last_block_time;
+    mutable evaluation_status: tweet_scores_evaluation_status = tweet_scores_evaluation_status.pending;
+}
+
+// Data transfer object for tweet scores
+struct tweet_score_dto {
+    user_address: pubkey;
+    request_uid: text;
+    original_tweet: text;
+    responded_tweet: text;
+    truth_score: decimal;
+    accuracy_score: decimal;
+    creativity_score: decimal; 
+    engagement_score: decimal;
+    final_score: decimal;
+    truth_rationale: text;
+    accuracy_rationale: text;
+    creativity_rationale: text;
+    engagement_rationale: text;
+    engagement_improvement_tips: text;
+    recommended_response: text;
+    created_at: integer;
+    updated_at: integer;
+    evaluation_status: tweet_scores_evaluation_status;
+}
+
+operation evaluate_tweet_request(request_uid: text, input_tweet: text, output_tweet: text) {
+    val signers = op_context.get_signers();
+    require(signers.size() >= 2, "At least 2 signers required");
+
+    val signer1 = signers[0];
+    val signer2 = signers[1];
+    val engine_account = engine @ { .address == signer2 };
+
+    val prefix = engine_account.prefix + "-";
+    require(request_uid.starts_with(prefix), "Request uid must start with prefix");
+
+    create tweet_scores(
+        unique_identifier = "",
+        user_address = signer1,
+        engine = engine_account,
+        request_uid = request_uid,
+        original_tweet = input_tweet,
+        responded_tweet = output_tweet,
+        evaluation_status = tweet_scores_evaluation_status.pending,
+
+        // default value (Rell dont support optional)
+        truth_score = 0.0,
+        accuracy_score = 0.0,
+        creativity_score = 0.0,
+        engagement_score = 0.0,
+        truth_rationale = "",
+        accuracy_rationale = "",
+        creativity_rationale = "",
+        engagement_rationale = "",
+        engagement_improvement_tips = "",
+        recommended_response = ""
+    );
+}
+
+operation update_tweet_scores(
+    request_uid: text,
+    unique_identifier: text,
+    truth_score: decimal,
+    accuracy_score: decimal,
+    creativity_score: decimal,
+    engagement_score: decimal,
+    truth_rationale: text,
+    accuracy_rationale: text,
+    creativity_rationale: text,
+    engagement_rationale: text,
+    engagement_improvement_tips: text,
+    recommended_response: text
+) {
+    val tweet_score = tweet_scores @ { .request_uid == request_uid };
+    val signer = op_context.get_signers()[0];
+    require(signer == tweet_score.engine.address, "Invalid signer");
+
+    update tweet_scores @ { $ == tweet_score } (
+        .unique_identifier = unique_identifier,
+        .truth_score = truth_score,
+        .accuracy_score = accuracy_score,
+        .creativity_score = creativity_score,
+        .engagement_score = engagement_score,
+        .truth_rationale = truth_rationale,
+        .accuracy_rationale = accuracy_rationale,
+        .creativity_rationale = creativity_rationale,
+        .engagement_rationale = engagement_rationale,
+        .engagement_improvement_tips = engagement_improvement_tips,
+        .recommended_response = recommended_response,
+        .evaluation_status = tweet_scores_evaluation_status.completed,
+        .updated_at = op_context.last_block_time
+    );
+}
+
+query get_engine_by_prefix(prefix: text)  = engine @? { .prefix == prefix };
+query get_engine_by_address(address: pubkey) = engine @? { .address == address };
+query engine_count(): integer = engine @* {} (@sum 1)[0];
+query tweet_scores_count(): integer = tweet_scores @* {} (@sum 1)[0];
+
+// Query to get a tweet score by tweet_id
+query get_tweet_score(request_uid: text): tweet_score_dto? {
+    return tweet_scores @? { .request_uid == request_uid } (
+        tweet_score_dto(
+            .user_address,
+            .request_uid,
+            .original_tweet,
+            .responded_tweet,
+            .truth_score,
+            .accuracy_score,
+            .creativity_score,
+            .engagement_score,
+            final_score = (.truth_score + .accuracy_score + .creativity_score + .engagement_score) / 4.0,
+            .truth_rationale,
+            .accuracy_rationale,
+            .creativity_rationale,
+            .engagement_rationale,
+            .engagement_improvement_tips,
+            .recommended_response,
+            .created_at,
+            .updated_at,
+            .evaluation_status
+        )
+    );
+}
+
+// query get_tweet_scores_by_unique_identifier() {}
+
+query get_tweet_scores_by_user_address(
+    user_address: byte_array,
+    pointer: integer,
+    n_scores: integer
+): (pointer: integer, scores: list<tweet_score_dto>) {
+    val scores = tweet_scores @* {
+        .user_address == .user_address
+    } (
+        @sort_desc @omit .created_at,
+        tweet_score_dto(
+            .user_address,
+            .request_uid, 
+            .original_tweet,
+            .responded_tweet,
+            .truth_score,
+            .accuracy_score,
+            .creativity_score,
+            .engagement_score,
+            final_score = (.truth_score + .accuracy_score + .creativity_score + .engagement_score) / 4.0,
+            .truth_rationale,
+            .accuracy_rationale,
+            .creativity_rationale,
+            .engagement_rationale,
+            .engagement_improvement_tips,
+            .recommended_response,
+            .created_at,
+            .updated_at,
+            .evaluation_status
+        )
+    ) offset pointer limit n_scores;
+
+    return (
+        pointer = pointer + scores.size(),
+        scores = scores
+    );
+}

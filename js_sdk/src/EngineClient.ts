@@ -2,6 +2,7 @@ import { createClient, decodeTransactionToGtx, encodeTransaction, IClient, Netwo
 import { chainConfig, CHROMIA_CHAIN } from "./config";
 
 interface UpdateTweetScoresArgs {
+    finalScore: string;
     truthScore: string;
     accuracyScore: string;
     creativityScore: string;
@@ -43,7 +44,13 @@ export class EngineClient {
     }
 
     async getEngine() {
-        return this.client.query("get_engine_by_address", { address: this.signatureProvider.pubKey.toString("hex") });
+        return this.client.query<{
+            id: string;
+            name: string;
+            prefix: string;
+            address: Buffer;
+            created_at: string;
+        }>("get_engine_by_address", { address: this.signatureProvider.pubKey });
     }
 
     async checkEngineExists() {
@@ -86,12 +93,13 @@ export class EngineClient {
         uniqueIdentifier: string,
         args: UpdateTweetScoresArgs 
     ) {
-        const { truthScore, accuracyScore, creativityScore, engagementScore, truthRationale, accuracyRationale, creativityRationale, engagementRationale, engagementImprovementTips, recommendedResponse } = args;
+        const { finalScore, truthScore, accuracyScore, creativityScore, engagementScore, truthRationale, accuracyRationale, creativityRationale, engagementRationale, engagementImprovementTips, recommendedResponse } = args;
         return this.client.signAndSendUniqueTransaction({
             name: "update_tweet_scores",
             args: [
                 requestUid,
                 uniqueIdentifier,
+                finalScore,
                 truthScore,
                 accuracyScore,
                 creativityScore,

@@ -1,11 +1,7 @@
 module;
 
-import lib.ft4.admin;
-import lib.ft4.auth;
-import lib.ft4.accounts;
-
 object dapp_meta {
-    owner: pubkey = x"037B248FD496ED0C18B0595EE70E2B253AB93577840B4C18612D81A79A2CED1F6D";
+    owner: pubkey = x"02322794285264C2E9143595A11EA42934B84C76769458BC17F948C97B73A07180";
 }
 
 operation create_engine(name: text, description: text, prefix: text, address: pubkey) {
@@ -50,6 +46,8 @@ entity tweet_scores {
     original_tweet: text;
     responded_tweet: text;
     
+    mutable final_score: decimal;
+
     // Scores (0-100)
     mutable truth_score: decimal;
     mutable accuracy_score: decimal;
@@ -112,6 +110,7 @@ operation evaluate_tweet_request(request_uid: text, input_tweet: text, output_tw
         evaluation_status = tweet_scores_evaluation_status.pending,
 
         // default value (Rell dont support optional)
+        final_score = 0.0,
         truth_score = 0.0,
         accuracy_score = 0.0,
         creativity_score = 0.0,
@@ -128,6 +127,7 @@ operation evaluate_tweet_request(request_uid: text, input_tweet: text, output_tw
 operation update_tweet_scores(
     request_uid: text,
     unique_identifier: text,
+    final_score: decimal,
     truth_score: decimal,
     accuracy_score: decimal,
     creativity_score: decimal,
@@ -145,6 +145,7 @@ operation update_tweet_scores(
 
     update tweet_scores @ { $ == tweet_score } (
         .unique_identifier = unique_identifier,
+        .final_score = final_score,
         .truth_score = truth_score,
         .accuracy_score = accuracy_score,
         .creativity_score = creativity_score,
@@ -160,8 +161,21 @@ operation update_tweet_scores(
     );
 }
 
-query get_engine_by_prefix(prefix: text)  = engine @? { .prefix == prefix };
-query get_engine_by_address(address: pubkey) = engine @? { .address == address };
+query get_engine_by_prefix(prefix: text) = engine @? { .prefix == prefix } (
+    id = .rowid,
+    .name,
+    .prefix,
+    .address,
+    .created_at
+);
+
+query get_engine_by_address(address: pubkey) = engine @? { .address == address } (
+    id = .rowid,
+    .name,
+    .prefix,
+    .address,
+    .created_at
+);
 query engine_count(): integer = engine @* {} (@sum 1)[0];
 query tweet_scores_count(): integer = tweet_scores @* {} (@sum 1)[0];
 
@@ -177,7 +191,7 @@ query get_tweet_score(request_uid: text): tweet_score_dto? {
             .accuracy_score,
             .creativity_score,
             .engagement_score,
-            final_score = (.truth_score + .accuracy_score + .creativity_score + .engagement_score) / 4.0,
+            .final_score,
             .truth_rationale,
             .accuracy_rationale,
             .creativity_rationale,
@@ -191,15 +205,17 @@ query get_tweet_score(request_uid: text): tweet_score_dto? {
     );
 }
 
-// query get_tweet_scores_by_unique_identifier() {}
-
-query get_tweet_scores_by_user_address(
-    user_address: byte_array,
+query get_tweet_scores_by_unique_identifier(
+    unique_identifier: text,
     pointer: integer,
-    n_scores: integer
+    n_scores: integer,
+    end_time: integer,
+    start_time: integer = 0,
 ): (pointer: integer, scores: list<tweet_score_dto>) {
     val scores = tweet_scores @* {
-        .user_address == .user_address
+        .unique_identifier == unique_identifier,
+        .created_at >= start_time,
+        .created_at <= end_time,
     } (
         @sort_desc @omit .created_at,
         tweet_score_dto(
@@ -211,7 +227,48 @@ query get_tweet_scores_by_user_address(
             .accuracy_score,
             .creativity_score,
             .engagement_score,
-            final_score = (.truth_score + .accuracy_score + .creativity_score + .engagement_score) / 4.0,
+            .final_score,
+            .truth_rationale,
+            .accuracy_rationale,
+            .creativity_rationale,
+            .engagement_rationale,
+            .engagement_improvement_tips,
+            .recommended_response,
+            .created_at,
+            .updated_at,
+            .evaluation_status
+        )
+    ) offset pointer limit n_scores;
+
+    return (
+        pointer = pointer + scores.size(),
+        scores = scores
+    );
+}
+
+query get_tweet_scores_by_user_address(
+    user_address: byte_array,
+    pointer: integer,
+    n_scores: integer,
+    end_time: integer,
+    start_time: integer = 0
+): (pointer: integer, scores: list<tweet_score_dto>) {
+    val scores = tweet_scores @* {
+        .user_address == .user_address,
+        .created_at >= start_time,
+        .created_at <= end_time,
+    } (
+        @sort_desc @omit .created_at,
+        tweet_score_dto(
+            .user_address,
+            .request_uid, 
+            .original_tweet,
+            .responded_tweet,
+            .truth_score,
+            .accuracy_score,
+            .creativity_score,
+            .engagement_score,
+            .final_score,
             .truth_rationale,
             .accuracy_rationale,
             .creativity_rationale,

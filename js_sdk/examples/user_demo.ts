@@ -6,10 +6,10 @@ import { ENGINE_KEY, USER_KEY } from "./config";
 console.log(USER_KEY.pub);
 
 async function main() {
-    const evaClient = await EvaClient.init(USER_KEY.priv, CHROMIA_CHAIN.LOCAL, {
+    const evaClient = await EvaClient.init(USER_KEY.priv, CHROMIA_CHAIN.MAINNET, {
         url: "http://localhost:8888/api/v1",
-        prefix: "TEST2",
-        pub: ENGINE_KEY.pub
+        prefix: "EVA",
+        pub: "026822066B64608E0A6E071D8AE76BDE509011FF823DBBF9FD6AC2E1F202904A0A"
     });
 
     const engine = await evaClient.getEngine();

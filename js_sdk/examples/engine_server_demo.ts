@@ -1,7 +1,14 @@
 import express from 'express';
 import { EngineClient } from '../src/EngineClient';
 import { CHROMIA_CHAIN } from '../src/config';
-import { ENGINE_KEY } from './config';
+import dotenv from 'dotenv';
+
+dotenv.config();
+// import { ENGINE_KEY } from './config';
+const ENGINE_KEY = {
+    pub: process.env.ENGINE_KEY_PUB!,
+    priv: process.env.ENGINE_KEY_PRIV!
+};
 
 const app = express();
 app.use(express.json());
@@ -11,7 +18,17 @@ const port = 8888;
 console.log(ENGINE_KEY.pub);
 
 async function main() {
-    const engine = await EngineClient.init(ENGINE_KEY.priv, CHROMIA_CHAIN.LOCAL);
+    const engine = await EngineClient.init(ENGINE_KEY.priv, CHROMIA_CHAIN.MAINNET);
+
+    const engineInstance = await engine.getEngine();
+    if (!engineInstance) {
+        console.error("Engine not found, please contact admin to create a new engine");
+        process.exit(1);
+    }
+    console.log(engineInstance.id);
+    console.log(engineInstance.address.toString("hex"));
+    console.log(engineInstance.prefix);
+    console.log(engineInstance.created_at);
 
     app.post('/api/v1/eval/evaluate-tweet-request', async (req, res) => {
         try {
@@ -20,6 +37,7 @@ async function main() {
                 // Run some NLP Workflow here
 
                 return {
+                    finalScore: "0.55",
                     truthScore: "0.4",
                     accuracyScore: "0.5",
                     creativityScore: "0.6",

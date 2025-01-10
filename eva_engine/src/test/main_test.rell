@@ -71,6 +71,7 @@ function test_evaluate_tweet_request() {
     assert_equals(tweet_score.accuracy_score, decimal("0.0")); 
     assert_equals(tweet_score.creativity_score, decimal("0.0"));
     assert_equals(tweet_score.engagement_score, decimal("0.0"));
+    assert_equals(tweet_score.final_score, decimal("0.0"));
     assert_equals(tweet_score.truth_rationale, "");
     assert_equals(tweet_score.accuracy_rationale, "");
     assert_equals(tweet_score.creativity_rationale, "");
@@ -99,6 +100,7 @@ function test_update_tweet_score() {
     val accuracy_score = decimal("0.5");
     val creativity_score = decimal("0.5");
     val engagement_score = decimal("0.5");
+    val final_score = decimal("0.5");
     val truth_rationale = "Test truth rationale";
     val accuracy_rationale = "Test accuracy rationale";
     val creativity_rationale = "Test creativity rationale";
@@ -115,6 +117,7 @@ function test_update_tweet_score() {
             accuracy_score,
             creativity_score,
             engagement_score,
+            final_score,
             truth_rationale,
             accuracy_rationale,
             creativity_rationale,
@@ -134,6 +137,7 @@ function test_update_tweet_score() {
             accuracy_score,
             creativity_score,
             engagement_score,
+            final_score,
             truth_rationale,
             accuracy_rationale,
             creativity_rationale,
@@ -152,6 +156,7 @@ function test_update_tweet_score() {
     assert_equals(updated_score.accuracy_score, accuracy_score);
     assert_equals(updated_score.creativity_score, creativity_score);
     assert_equals(updated_score.engagement_score, engagement_score);
+    assert_equals(updated_score.final_score, final_score);
     assert_equals(updated_score.truth_rationale, truth_rationale);
     assert_equals(updated_score.accuracy_rationale, accuracy_rationale);
     assert_equals(updated_score.creativity_rationale, creativity_rationale);

@@ -16,10 +16,7 @@ async function main() {
     console.log("engine", engine);
 
     const txHash = await evaClient.signEvaluateTweetRequest("Hello input", "Hello output");
-    console.log(txHash);
-
     const response = await evaClient.submitEvaluateTweetRequest(txHash);
-    console.log(response);
     
 }
 

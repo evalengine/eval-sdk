@@ -73,10 +73,12 @@ export class EvaClient {
     return signedTx.toString("hex");
   }
 
-  async submitEvaluateTweetRequest(txHash: string): Promise<{}> {
+  async submitEvaluateTweetRequest(txHash: string): Promise<{
+    result: any,
+    tx: string
+  }> {
     const engineUrl = new URL(this.engine.url).pathname + '/eval/evaluate-tweet-request';
     const fullUrl = new URL(engineUrl, this.engine.url).toString();
-    console.log(fullUrl);
     const response = await fetch(fullUrl, {
       method: 'POST',
       headers: {
@@ -84,8 +86,7 @@ export class EvaClient {
       },
       body: JSON.stringify({ hash: txHash })
     });
-    const data = await response.text();
-    console.log(data);
+    const data = await response.json();
     return data;
 
   }

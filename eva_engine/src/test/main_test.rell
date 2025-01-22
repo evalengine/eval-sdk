@@ -8,6 +8,7 @@ val owner = rell.test.keypair(
 );
 val engine = rell.test.keypairs.alice;
 val user = rell.test.keypairs.bob;
+val charlie = rell.test.keypairs.charlie;
 
 function _create_engine() {
     rell.test.tx()
@@ -78,6 +79,26 @@ function test_evaluate_tweet_request() {
     assert_equals(tweet_score.engagement_rationale, "");
     assert_equals(tweet_score.engagement_improvement_tips, "");
     assert_equals(tweet_score.recommended_response, "");
+
+    var accounts_count = accounts_count();
+    assert_equals(accounts_count, 1);
+
+    rell.test.tx()
+        .op(evaluate_tweet_request("TEST-2", input_tweet, output_tweet))
+        .sign(charlie)
+        .sign(engine)
+        .run();
+
+    rell.test.tx()
+        .op(evaluate_tweet_request("TEST-3", input_tweet, output_tweet))
+        .sign(charlie)
+        .sign(engine)
+        .run();
+
+    accounts_count = accounts_count();
+    assert_equals(accounts_count, 2);
+
+
 }
 
 function test_update_tweet_score() {

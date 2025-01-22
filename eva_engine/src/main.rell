@@ -176,8 +176,14 @@ query get_engine_by_address(address: pubkey) = engine @? { .address == address }
     .address,
     .created_at
 );
-query engine_count(): integer = engine @* {} (@sum 1)[0];
-query tweet_scores_count(): integer = tweet_scores @* {} (@sum 1)[0];
+
+query engine_count(): integer = engine @* { } ( @sum 1 )[0];
+
+query tweet_scores_count(): integer = tweet_scores @* { } ( @sum 1 )[0];
+
+query accounts_count(): integer {
+    return tweet_scores @* { } ( @group .user_address, @sum 1 ).size();
+}
 
 // Query to get a tweet score by tweet_id
 query get_tweet_score(request_uid: text): tweet_score_dto? {

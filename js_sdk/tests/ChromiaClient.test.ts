@@ -1,5 +1,5 @@
 import { decodeTransactionToGtx } from "postchain-client";
-import { EvaClient } from "../src/EvaClient";
+import { EvaClient } from "../src/EvalClient";
 import { CHROMIA_CHAIN } from "../src/config";
 
 const OWNER_KEY = "01010101010101010101010101010101010101010101010101010101010101012";

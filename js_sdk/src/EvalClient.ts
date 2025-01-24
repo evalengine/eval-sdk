@@ -8,8 +8,24 @@ interface EngineConfig {
   pub: string;
 }
 
-export class EvaClient {
-  protected static instance: EvaClient;
+export interface EvalTweetResponse {
+  input_hash: string
+  output_hash: string
+  truth_score: number
+  accuracy_score: number
+  creativity_score: number
+  engagement_score: number
+  final_score: number
+  truth_rationale: string
+  accuracy_rationale: string
+  creativity_rationale: string
+  engagement_rationale: string
+  engagement_improvement_tips: string
+  recommended_response: string
+}
+
+export class EvalClient {
+  protected static instance: EvalClient;
   public engine: EngineConfig;
   public client: IClient;
   public signatureProvider: SignatureProvider;
@@ -33,7 +49,7 @@ export class EvaClient {
     }
   }
 
-  static async init<T extends EvaClient>(
+  static async init<T extends EvalClient>(
     this: new (privateKey: string, client: IClient, config: NetworkSettings, engine: EngineConfig) => T,
     privateKey: string,
     chain: CHROMIA_CHAIN,
@@ -61,9 +77,15 @@ export class EvaClient {
         name: "evaluate_tweet_request",
         args: [requestUid, inputTweet, outputTweet]
     };
+    const nopOperation = {
+      name: "nop",
+      args: []
+  };
+
     const signedTx = await this.client.signTransaction({
         operations: [
-            operation
+            operation,
+            nopOperation
         ],
         signers: [
             this.signatureProvider.pubKey,
@@ -73,10 +95,7 @@ export class EvaClient {
     return signedTx.toString("hex");
   }
 
-  async submitEvaluateTweetRequest(txHash: string): Promise<{
-    result: any,
-    tx: string
-  }> {
+  async submitEvaluateTweetRequest(txHash: string): Promise<EvalTweetResponse> {
     const engineUrl = new URL(this.engine.url).pathname + '/eval/evaluate-tweet-request';
     const fullUrl = new URL(engineUrl, this.engine.url).toString();
     const response = await fetch(fullUrl, {
@@ -86,7 +105,10 @@ export class EvaClient {
       },
       body: JSON.stringify({ hash: txHash })
     });
-    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(`Failed to submit evaluate tweet request: ${response.statusText}`);
+    }
+    const data: EvalTweetResponse = await response.json();
     return data;
 
   }

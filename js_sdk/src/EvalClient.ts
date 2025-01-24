@@ -8,8 +8,8 @@ interface EngineConfig {
   pub: string;
 }
 
-export class EvaClient {
-  protected static instance: EvaClient;
+export class EvalClient {
+  protected static instance: EvalClient;
   public engine: EngineConfig;
   public client: IClient;
   public signatureProvider: SignatureProvider;
@@ -33,7 +33,7 @@ export class EvaClient {
     }
   }
 
-  static async init<T extends EvaClient>(
+  static async init<T extends EvalClient>(
     this: new (privateKey: string, client: IClient, config: NetworkSettings, engine: EngineConfig) => T,
     privateKey: string,
     chain: CHROMIA_CHAIN,
@@ -61,9 +61,15 @@ export class EvaClient {
         name: "evaluate_tweet_request",
         args: [requestUid, inputTweet, outputTweet]
     };
+    const nopOperation = {
+      name: "nop",
+      args: []
+  };
+
     const signedTx = await this.client.signTransaction({
         operations: [
-            operation
+            operation,
+            nopOperation
         ],
         signers: [
             this.signatureProvider.pubKey,

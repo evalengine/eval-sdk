@@ -1,5 +1,5 @@
 import { decodeTransactionToGtx } from "postchain-client";
-import { EvaClient } from "../src/EvalClient";
+import { EvalClient } from "../src/EvalClient";
 import { CHROMIA_CHAIN } from "../src/config";
 
 const OWNER_KEY = "01010101010101010101010101010101010101010101010101010101010101012";
@@ -8,15 +8,16 @@ const DEVELOPER_KEY = "010101010101010101010101010101010101010101010101010101010
 
 describe("ChromiaClient", () => {
 
-  let developer: EvaClient;
+  let developer: EvalClient;
 
   beforeAll(async () => {
-    developer = await EvaClient.init(
+    developer = await EvalClient.init(
       DEVELOPER_KEY,
       CHROMIA_CHAIN.LOCAL,
       {
         url: "http://localhost:8888",
-        prefix: "TEST"
+        prefix: "TEST",
+        pub: developer.signatureProvider.pubKey.toString("hex")
       }
     );
   });

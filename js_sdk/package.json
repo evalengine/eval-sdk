@@ -1,6 +1,6 @@
 {
   "name": "eval-engine-sdk",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "description": "Eval Engine SDK for JavaScript/TypeScript",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -18,7 +18,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [],
-  "author": "",
+  "author": "Eval Engine",
   "license": "MIT",
   "dependencies": {
     "postchain-client": "^1.20.2",
@@ -36,5 +36,12 @@
     "@types/express": "^5.0.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/evalengine/eval-sdk.git"
   }
 }

@@ -1,6 +1,5 @@
 node_modules/
 tests/
-examples/
 .gitignore
 tsconfig.json
 jest.config.js

@@ -185,6 +185,23 @@ query accounts_count(): integer {
     return tweet_scores @* { } ( @group .user_address, @sum 1 ).size();
 }
 
+query get_engines(
+    n_engines: integer,
+    pointer: integer = 0
+) {
+    val engines = engine @* { } (
+        @sort_desc @omit .created_at,
+        id = .rowid,
+        .name,
+        .description,
+        .prefix,
+        .address,
+        .created_at,
+        .updated_at,
+    ) offset pointer limit n_engines;
+    return (pointer = pointer + engines.size(), engines = engines);
+}
+
 // Query to get a tweet score by tweet_id
 query get_tweet_score(request_uid: text): tweet_score_dto? {
     return tweet_scores @? { .request_uid == request_uid } (
